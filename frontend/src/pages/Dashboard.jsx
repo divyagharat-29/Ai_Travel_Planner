@@ -1,9 +1,20 @@
 import { useNavigate } from 'react-router-dom'
 import TripCard from '../components/TripCard'
+import { useEffect } from 'react'
+import '../styles/components/TripCard.css'
 import '../styles/pages/Dashboard.css'
+
 
 function Dashboard() {
   const navigate = useNavigate()
+
+  useEffect(() => {
+  const token = localStorage.getItem('token')
+  if (!token) {
+    navigate('/')
+  }
+  }, [])
+
   const user = JSON.parse(localStorage.getItem('user'))
 
   const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : 'U'
@@ -90,7 +101,7 @@ function Dashboard() {
             <h1>Welcome back, {user?.firstName}</h1>
             <p>You have {upcomingTrips.length} upcoming trips</p>
           </div>
-          <button className="btn-create-trip">
+          <button className="btn-create-trip" onClick={() => navigate('/create-trip')}>
             ＋ Create trip
           </button>
         </div>
@@ -154,8 +165,8 @@ function Dashboard() {
                 <span className="trip-badge past">Past</span>
               </div>
               <div className="trip-card-details">
-                <span>📅 {trip.dates}</span>
-                <span>👥 {trip.members} members</span>
+                <span> {trip.dates}</span>
+                <span> {trip.members} members</span>
               </div>
               <div className="trip-card-divider"></div>
               <div className="trip-card-footer">

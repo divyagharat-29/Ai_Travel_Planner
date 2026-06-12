@@ -1,10 +1,10 @@
-/* 
+
 .trips-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
   margin-bottom: 2rem;
-} */
+}
 
 .trip-card {
   background: #2a2a2a;
@@ -80,10 +80,10 @@
   color: #ccc;
 }
 
-/* .trip-card-budget span {
+.trip-card-budget span {
   font-weight: 600;
   color: #ffffff;
-} */
+}
 
 .member-avatars {
   display: flex;
