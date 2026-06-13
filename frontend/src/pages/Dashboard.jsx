@@ -1,23 +1,30 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getMyTrips } from '../services/tripService'
 import TripCard from '../components/TripCard'
-import { useEffect } from 'react'
-import '../styles/components/TripCard.css'
 import '../styles/pages/Dashboard.css'
 
-
 function Dashboard() {
+  const [trips, setTrips] = useState([])
+  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const user = JSON.parse(localStorage.getItem('user'))
+  const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : 'U'
 
   useEffect(() => {
-  const token = localStorage.getItem('token')
-  if (!token) {
-    navigate('/')
-  }
+    const fetchTrips = async () => {
+      try {
+        const data = await getMyTrips()
+        setTrips(data.trips)
+      } catch (err) {
+        console.error('Failed to fetch trips', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTrips()
   }, [])
-
-  const user = JSON.parse(localStorage.getItem('user'))
-
-  const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : 'U'
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -25,42 +32,9 @@ function Dashboard() {
     navigate('/')
   }
 
-  // Placeholder trip data — will come from API later
-  const upcomingTrips = [
-    {
-      id: 1,
-      name: 'Goa Adventure',
-      location: 'Goa, India',
-      dates: 'Dec 10 – Dec 15, 2025',
-      members: 4,
-      budget: '₹40,000',
-      memberInitials: ['DS', 'RK', 'PA'],
-      extra: 1,
-    },
-    {
-      id: 2,
-      name: 'Manali Trip',
-      location: 'Manali, Himachal Pradesh',
-      dates: 'Jan 5 – Jan 10, 2026',
-      members: 3,
-      budget: '₹25,000',
-      memberInitials: ['DS', 'RK', 'AN'],
-      extra: 0,
-    },
-  ]
-
-  const pastTrips = [
-    {
-      id: 3,
-      name: 'Pondicherry Escape',
-      location: 'Pondicherry, India',
-      dates: 'Oct 2 – Oct 7, 2024',
-      members: 3,
-      budget: '₹18,000',
-      memberInitials: ['DS', 'RK'],
-      extra: 1,
-    },
-  ]
+  const now = new Date()
+  const upcomingTrips = trips.filter(trip => new Date(trip.startDate) >= now)
+  const pastTrips = trips.filter(trip => new Date(trip.startDate) < now)
 
   return (
     <div className="dashboard">
@@ -73,13 +47,13 @@ function Dashboard() {
         </div>
 
         <nav className="sidebar-nav">
-  <div className="sidebar-item active">My Trips</div>
-  <div className="sidebar-item">Create Trip</div>
-  <div className="sidebar-item">Expenses</div>
-  <div className="sidebar-item">Notifications</div>
-  <div className="sidebar-item">Profile</div>
-  <div className="sidebar-item" onClick={handleLogout}>Logout</div>
-</nav>
+          <div className="sidebar-item active">My Trips</div>
+          <div className="sidebar-item" onClick={() => navigate('/create-trip')}>Create Trip</div>
+          <div className="sidebar-item">Expenses</div>
+          <div className="sidebar-item">Notifications</div>
+          <div className="sidebar-item">Profile</div>
+          <div className="sidebar-item" onClick={handleLogout}>Logout</div>
+        </nav>
 
         <div className="sidebar-footer">
           <div className="sidebar-user">
@@ -95,43 +69,37 @@ function Dashboard() {
       {/* Main Content */}
       <div className="dashboard-main">
 
-        {/* Header */}
         <div className="dashboard-header">
           <div className="dashboard-welcome">
             <h1>Welcome back, {user?.firstName}</h1>
             <p>You have {upcomingTrips.length} upcoming trips</p>
           </div>
           <button className="btn-create-trip" onClick={() => navigate('/create-trip')}>
-            ＋ Create trip
+            + Create trip
           </button>
-        </div>
-
-        {/* Invitation Banner — will be dynamic later */}
-        <div className="invitation-banner">
-          <div className="invitation-text">
-            <strong>Rahul</strong> invited you to <strong>Manali Trip</strong>
-          </div>
-          <div className="invitation-actions">
-            <button className="btn-decline">Decline</button>
-            <button className="btn-accept">Accept</button>
-          </div>
         </div>
 
         {/* Stats Row */}
         <div className="stats-row">
           <div className="stat-card">
             <div className="stat-label">Total trips</div>
-            <div className="stat-value">3</div>
+            <div className="stat-value">{trips.length}</div>
             <div className="stat-sub">All time</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Upcoming trips</div>
-            <div className="stat-value">2</div>
-            <div className="stat-sub">Next: Dec 10</div>
+            <div className="stat-value">{upcomingTrips.length}</div>
+            <div className="stat-sub">
+              {upcomingTrips.length > 0
+                ? `Next: ${new Date(upcomingTrips[0].startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+                : 'No upcoming trips'}
+            </div>
           </div>
           <div className="stat-card">
-            <div className="stat-label">Total spent</div>
-            <div className="stat-value">₹37,500</div>
+            <div className="stat-label">Total budget</div>
+            <div className="stat-value">
+              ₹{trips.reduce((sum, t) => sum + t.budget, 0).toLocaleString('en-IN')}
+            </div>
             <div className="stat-sub">Across all trips</div>
           </div>
         </div>
@@ -142,47 +110,37 @@ function Dashboard() {
           <span className="section-view-all">View all</span>
         </div>
 
-        <div className="trips-grid">
-          {upcomingTrips.map(trip => (
-            <TripCard key={trip.id} trip={trip} type="upcoming" />
-          ))}
-        </div>
+        {loading ? (
+          <p style={{ color: '#888', fontSize: '14px' }}>Loading trips...</p>
+        ) : upcomingTrips.length === 0 ? (
+          <div className="empty-state">
+            <p>No upcoming trips yet.</p>
+            <button className="btn-submit" onClick={() => navigate('/create-trip')}>
+              Create your first trip
+            </button>
+          </div>
+        ) : (
+          <div className="trips-grid">
+            {upcomingTrips.map(trip => (
+              <TripCard key={trip.id} trip={trip} type="upcoming" />
+            ))}
+          </div>
+        )}
 
         {/* Past Trips */}
-        <div className="section-header">
-          <span className="section-title">Past trips</span>
-          <span className="section-view-all">View all</span>
-        </div>
-
-        <div className="trips-grid">
-          {pastTrips.map(trip => (
-            <div className="trip-card" key={trip.id}>
-              <div className="trip-card-top">
-                <div>
-                  <div className="trip-card-name">{trip.name}</div>
-                  <div className="trip-card-location">{trip.location}</div>
-                </div>
-                <span className="trip-badge past">Past</span>
-              </div>
-              <div className="trip-card-details">
-                <span> {trip.dates}</span>
-                <span> {trip.members} members</span>
-              </div>
-              <div className="trip-card-divider"></div>
-              <div className="trip-card-footer">
-                <div className="trip-card-budget">Spent: <span>{trip.budget}</span></div>
-                <div className="member-avatars">
-                  {trip.memberInitials.map((init, i) => (
-                    <div className="member-avatar" key={i}>{init}</div>
-                  ))}
-                  {trip.extra > 0 && (
-                    <div className="member-avatar extra">+{trip.extra}</div>
-                  )}
-                </div>
-              </div>
+        {pastTrips.length > 0 && (
+          <>
+            <div className="section-header" style={{ marginTop: '2rem' }}>
+              <span className="section-title">Past trips</span>
+              <span className="section-view-all">View all</span>
             </div>
-          ))}
-        </div>
+            <div className="trips-grid">
+              {pastTrips.map(trip => (
+                <TripCard key={trip.id} trip={trip} type="past" />
+              ))}
+            </div>
+          </>
+        )}
 
       </div>
     </div>

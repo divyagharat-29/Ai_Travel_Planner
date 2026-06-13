@@ -87,3 +87,45 @@ export const getMyTrips = async (req, res) => {
     res.status(500).json({ message: 'Something went wrong' })
   }
 }
+
+// GET SINGLE TRIP BY ID
+export const getTripById = async (req, res) => {
+  try {
+    const tripId = parseInt(req.params.id)
+    const userId = req.user.userId
+
+    const trip = await prisma.trip.findUnique({
+      where: { id: tripId },
+      include: {
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true
+              }
+            }
+          }
+        }
+      }
+    })
+
+    if (!trip) {
+      return res.status(404).json({ message: 'Trip not found' })
+    }
+
+    // Make sure the logged in user is a member of this trip
+    const isMember = trip.members.some(m => m.userId === userId)
+    if (!isMember) {
+      return res.status(403).json({ message: 'Access denied' })
+    }
+
+    res.status(200).json({ trip })
+
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Something went wrong' })
+  }
+}
