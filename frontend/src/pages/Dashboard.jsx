@@ -1,30 +1,55 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMyTrips } from '../services/tripService'
+import { getPendingInvitations, acceptInvitation, declineInvitation } from '../services/invitationService'
 import TripCard from '../components/TripCard'
 import '../styles/pages/Dashboard.css'
 
 function Dashboard() {
   const [trips, setTrips] = useState([])
+  const [invitations, setInvitations] = useState([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
   const user = JSON.parse(localStorage.getItem('user'))
   const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : 'U'
 
   useEffect(() => {
-    const fetchTrips = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getMyTrips()
-        setTrips(data.trips)
+        const [tripsData, invitesData] = await Promise.all([
+          getMyTrips(),
+          getPendingInvitations()
+        ])
+        setTrips(tripsData.trips)
+        setInvitations(invitesData.invitations)
       } catch (err) {
-        console.error('Failed to fetch trips', err)
+        console.error(err)
       } finally {
         setLoading(false)
       }
     }
-
-    fetchTrips()
+    fetchData()
   }, [])
+
+  const handleAccept = async (invitationId) => {
+    try {
+      await acceptInvitation(invitationId)
+      setInvitations(prev => prev.filter(inv => inv.id !== invitationId))
+      const data = await getMyTrips()
+      setTrips(data.trips)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleDecline = async (invitationId) => {
+    try {
+      await declineInvitation(invitationId)
+      setInvitations(prev => prev.filter(inv => inv.id !== invitationId))
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -38,23 +63,19 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
-
-      {/* Sidebar */}
       <div className="sidebar">
         <div className="sidebar-brand">
           <div className="sidebar-brand-icon">✈</div>
           <span className="sidebar-brand-name">Wandr</span>
         </div>
-
         <nav className="sidebar-nav">
-          <div className="sidebar-item active">My Trips</div>
-          <div className="sidebar-item" onClick={() => navigate('/create-trip')}>Create Trip</div>
-          <div className="sidebar-item">Expenses</div>
-          <div className="sidebar-item">Notifications</div>
-          <div className="sidebar-item">Profile</div>
-          <div className="sidebar-item" onClick={handleLogout}>Logout</div>
+          <div className="sidebar-item active">🗺 My Trips</div>
+          <div className="sidebar-item" onClick={() => navigate('/create-trip')}>➕ Create Trip</div>
+          <div className="sidebar-item">💰 Expenses</div>
+          <div className="sidebar-item">🔔 Notifications</div>
+          <div className="sidebar-item">👤 Profile</div>
+          <div className="sidebar-item" onClick={handleLogout}>🚪 Logout</div>
         </nav>
-
         <div className="sidebar-footer">
           <div className="sidebar-user">
             <div className="sidebar-avatar">{initials}</div>
@@ -66,9 +87,7 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="dashboard-main">
-
         <div className="dashboard-header">
           <div className="dashboard-welcome">
             <h1>Welcome back, {user?.firstName}</h1>
@@ -79,7 +98,24 @@ function Dashboard() {
           </button>
         </div>
 
-        {/* Stats Row */}
+        {/* Pending Invitations */}
+        {invitations.map(inv => (
+          <div className="invitation-banner" key={inv.id}>
+            <div className="invitation-text">
+              <strong>{inv.sender.firstName}</strong> invited you to{' '}
+              <strong>{inv.trip.name}</strong>
+            </div>
+            <div className="invitation-actions">
+              <button className="btn-decline" onClick={() => handleDecline(inv.id)}>
+                Decline
+              </button>
+              <button className="btn-accept" onClick={() => handleAccept(inv.id)}>
+                Accept
+              </button>
+            </div>
+          </div>
+        ))}
+
         <div className="stats-row">
           <div className="stat-card">
             <div className="stat-label">Total trips</div>
@@ -104,7 +140,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Upcoming Trips */}
         <div className="section-header">
           <span className="section-title">Upcoming trips</span>
           <span className="section-view-all">View all</span>
@@ -127,7 +162,6 @@ function Dashboard() {
           </div>
         )}
 
-        {/* Past Trips */}
         {pastTrips.length > 0 && (
           <>
             <div className="section-header" style={{ marginTop: '2rem' }}>
@@ -141,7 +175,6 @@ function Dashboard() {
             </div>
           </>
         )}
-
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getTripById } from '../services/tripService'
+import InviteModal from '../components/InviteModal'
 import '../styles/pages/TripDetails.css'
 
 function TripDetails() {
@@ -8,6 +9,7 @@ function TripDetails() {
   const navigate = useNavigate()
   const [trip, setTrip] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [showInviteModal, setShowInviteModal] = useState(false)
 
   useEffect(() => {
     const fetchTrip = async () => {
@@ -21,14 +23,11 @@ function TripDetails() {
         setLoading(false)
       }
     }
-
     fetchTrip()
   }, [id])
 
   const formatDate = (date) => new Date(date).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
+    day: 'numeric', month: 'long', year: 'numeric'
   })
 
   if (loading) return (
@@ -43,21 +42,20 @@ function TripDetails() {
     <div className="trip-details-page">
       <div className="trip-details-main">
 
-        {/* Back button */}
         <div className="trip-details-back" onClick={() => navigate('/dashboard')}>
           ← Back to dashboard
         </div>
 
-        {/* Header */}
         <div className="trip-details-header">
           <div>
             <div className="trip-details-title">{trip.name}</div>
             <div className="trip-details-destination">{trip.destination}</div>
           </div>
-          <button className="btn-invite">+ Invite Members</button>
+          <button className="btn-invite" onClick={() => setShowInviteModal(true)}>
+            + Invite Members
+          </button>
         </div>
 
-        {/* Trip Info Row */}
         <div className="trip-info-row">
           <div className="trip-info-card">
             <div className="trip-info-label">Start Date</div>
@@ -73,7 +71,6 @@ function TripDetails() {
           </div>
         </div>
 
-        {/* Members Section */}
         <div className="section-block">
           <div className="section-block-title">
             <span>Members ({trip.members.length})</span>
@@ -94,7 +91,6 @@ function TripDetails() {
           ))}
         </div>
 
-        {/* Itinerary Section — AI fills this later */}
         <div className="section-block">
           <div className="section-block-title">
             <span>Itinerary</span>
@@ -105,7 +101,6 @@ function TripDetails() {
           </div>
         </div>
 
-        {/* Expenses Section — Phase 4 */}
         <div className="section-block">
           <div className="section-block-title">
             <span>Expenses</span>
@@ -117,6 +112,14 @@ function TripDetails() {
         </div>
 
       </div>
+
+      {showInviteModal && (
+        <InviteModal
+          tripId={trip.id}
+          onClose={() => setShowInviteModal(false)}
+        />
+      )}
+
     </div>
   )
 }

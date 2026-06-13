@@ -3,6 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import authRoutes from './routes/authRoutes.js'
 import tripRoutes from './routes/tripRoutes.js'
+import invitationRoutes from './routes/invitationRoutes.js'
 
 dotenv.config()
 
@@ -13,6 +14,7 @@ app.use(express.json())
 
 app.use('/api/auth', authRoutes)
 app.use('/api/trips', tripRoutes)
+app.use('/api/invitations', invitationRoutes)
 
 app.get('/', (req, res) => {
   res.json({ message: 'Wandr API is running!' })

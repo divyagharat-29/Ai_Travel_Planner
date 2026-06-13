@@ -16,8 +16,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  trips       Trip[]       @relation("TripOwner")
-  tripMembers TripMember[]
+  trips            Trip[]       @relation("TripOwner")
+  tripMembers      TripMember[]
+  sentInvitations  Invitation[] @relation("InvitationSender")
+  receivedInvitations Invitation[] @relation("InvitationReceiver")
 }
 
 model Trip {
@@ -31,18 +33,34 @@ model Trip {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  owner   User         @relation("TripOwner", fields: [ownerId], references: [id])
-  members TripMember[]
+  owner       User         @relation("TripOwner", fields: [ownerId], references: [id])
+  members     TripMember[]
+  invitations Invitation[]
 }
 
 model TripMember {
-  id       Int    @id @default(autoincrement())
-  tripId   Int
-  userId   Int
-  role     String @default("member")
+  id     Int    @id @default(autoincrement())
+  tripId Int
+  userId Int
+  role   String @default("member")
 
   trip Trip @relation(fields: [tripId], references: [id])
   user User @relation(fields: [userId], references: [id])
 
   @@unique([tripId, userId])
+}
+
+model Invitation {
+  id         Int      @id @default(autoincrement())
+  tripId     Int
+  senderId   Int
+  receiverId Int
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+
+  trip     Trip @relation(fields: [tripId], references: [id])
+  sender   User @relation("InvitationSender", fields: [senderId], references: [id])
+  receiver User @relation("InvitationReceiver", fields: [receiverId], references: [id])
+
+  @@unique([tripId, receiverId])
 }
