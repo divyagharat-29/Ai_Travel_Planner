@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getTripById } from '../services/tripService'
+import { generateItinerary, getItinerary } from '../services/aiService'
 import InviteModal from '../components/InviteModal'
+import ItineraryView from '../components/ItineraryView'
 import '../styles/pages/TripDetails.css'
 
 function TripDetails() {
@@ -10,12 +12,23 @@ function TripDetails() {
   const [trip, setTrip] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showInviteModal, setShowInviteModal] = useState(false)
+  const [itinerary, setItinerary] = useState(null)
+  const [generatingAI, setGeneratingAI] = useState(false)
 
   useEffect(() => {
     const fetchTrip = async () => {
       try {
         const data = await getTripById(id)
         setTrip(data.trip)
+
+        // Try to fetch existing itinerary
+        try {
+          const itinData = await getItinerary(id)
+          setItinerary(itinData.itinerary)
+        } catch {
+          // No itinerary yet — that's fine
+        }
+
       } catch (err) {
         console.error('Failed to fetch trip', err)
         navigate('/dashboard')
@@ -25,6 +38,18 @@ function TripDetails() {
     }
     fetchTrip()
   }, [id])
+
+  const handleGenerateItinerary = async () => {
+    setGeneratingAI(true)
+    try {
+      const data = await generateItinerary(id)
+      setItinerary(data.itinerary)
+    } catch (err) {
+      console.error('Failed to generate itinerary', err)
+    } finally {
+      setGeneratingAI(false)
+    }
+  }
 
   const formatDate = (date) => new Date(date).toLocaleDateString('en-IN', {
     day: 'numeric', month: 'long', year: 'numeric'
@@ -71,6 +96,7 @@ function TripDetails() {
           </div>
         </div>
 
+        {/* Members */}
         <div className="section-block">
           <div className="section-block-title">
             <span>Members ({trip.members.length})</span>
@@ -91,16 +117,33 @@ function TripDetails() {
           ))}
         </div>
 
+        {/* Itinerary */}
         <div className="section-block">
           <div className="section-block-title">
             <span>Itinerary</span>
-            <button className="btn-invite">Generate with AI</button>
+            <button
+              className="btn-invite"
+              onClick={handleGenerateItinerary}
+              disabled={generatingAI}
+            >
+              {generatingAI ? 'Generating...' : itinerary ? 'Regenerate' : 'Generate with AI'}
+            </button>
           </div>
-          <div className="empty-section">
-            No itinerary yet. Click "Generate with AI" to create one.
-          </div>
+
+          {generatingAI ? (
+            <div className="empty-section">
+              🤖 AI is generating your itinerary...
+            </div>
+          ) : itinerary ? (
+            <ItineraryView itinerary={itinerary} />
+          ) : (
+            <div className="empty-section">
+              No itinerary yet. Click "Generate with AI" to create one.
+            </div>
+          )}
         </div>
 
+        {/* Expenses */}
         <div className="section-block">
           <div className="section-block-title">
             <span>Expenses</span>
