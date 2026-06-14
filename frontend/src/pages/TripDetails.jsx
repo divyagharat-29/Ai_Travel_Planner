@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getTripById } from '../services/tripService'
 import { generateItinerary, getItinerary } from '../services/aiService'
+import { getExpenses, getSplitSummary } from '../services/expenseService'
 import InviteModal from '../components/InviteModal'
 import ItineraryView from '../components/ItineraryView'
+import AddExpenseModal from '../components/AddExpenseModal'
+import ExpensesView from '../components/ExpensesView'
 import '../styles/pages/TripDetails.css'
 
 function TripDetails() {
@@ -12,31 +15,37 @@ function TripDetails() {
   const [trip, setTrip] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showInviteModal, setShowInviteModal] = useState(false)
+  const [showExpenseModal, setShowExpenseModal] = useState(false)
   const [itinerary, setItinerary] = useState(null)
   const [generatingAI, setGeneratingAI] = useState(false)
+  const [expenses, setExpenses] = useState([])
+  const [splitSummary, setSplitSummary] = useState(null)
 
   useEffect(() => {
-    const fetchTrip = async () => {
+    const fetchAll = async () => {
       try {
         const data = await getTripById(id)
         setTrip(data.trip)
 
-        // Try to fetch existing itinerary
         try {
           const itinData = await getItinerary(id)
           setItinerary(itinData.itinerary)
-        } catch {
-          // No itinerary yet — that's fine
-        }
+        } catch { }
+
+        const expenseData = await getExpenses(id)
+        setExpenses(expenseData.expenses)
+
+        const splitData = await getSplitSummary(id)
+        setSplitSummary(splitData)
 
       } catch (err) {
-        console.error('Failed to fetch trip', err)
+        console.error(err)
         navigate('/dashboard')
       } finally {
         setLoading(false)
       }
     }
-    fetchTrip()
+    fetchAll()
   }, [id])
 
   const handleGenerateItinerary = async () => {
@@ -45,10 +54,17 @@ function TripDetails() {
       const data = await generateItinerary(id)
       setItinerary(data.itinerary)
     } catch (err) {
-      console.error('Failed to generate itinerary', err)
+      console.error(err)
     } finally {
       setGeneratingAI(false)
     }
+  }
+
+  const handleExpenseAdded = async (newExpense) => {
+    setExpenses(prev => [newExpense, ...prev])
+    // Refresh split summary
+    const splitData = await getSplitSummary(id)
+    setSplitSummary(splitData)
   }
 
   const formatDate = (date) => new Date(date).toLocaleDateString('en-IN', {
@@ -92,7 +108,9 @@ function TripDetails() {
           </div>
           <div className="trip-info-card">
             <div className="trip-info-label">Budget</div>
-            <div className="trip-info-value">₹{trip.budget.toLocaleString('en-IN')}</div>
+            <div className="trip-info-value">
+              ₹{trip.budget.toLocaleString('en-IN')}
+            </div>
           </div>
         </div>
 
@@ -129,11 +147,8 @@ function TripDetails() {
               {generatingAI ? 'Generating...' : itinerary ? 'Regenerate' : 'Generate with AI'}
             </button>
           </div>
-
           {generatingAI ? (
-            <div className="empty-section">
-              🤖 AI is generating your itinerary...
-            </div>
+            <div className="empty-section">🤖 AI is generating your itinerary...</div>
           ) : itinerary ? (
             <ItineraryView itinerary={itinerary} />
           ) : (
@@ -147,11 +162,11 @@ function TripDetails() {
         <div className="section-block">
           <div className="section-block-title">
             <span>Expenses</span>
-            <button className="btn-invite">+ Add Expense</button>
+            <button className="btn-invite" onClick={() => setShowExpenseModal(true)}>
+              + Add Expense
+            </button>
           </div>
-          <div className="empty-section">
-            No expenses added yet.
-          </div>
+          <ExpensesView expenses={expenses} splitSummary={splitSummary} />
         </div>
 
       </div>
@@ -160,6 +175,14 @@ function TripDetails() {
         <InviteModal
           tripId={trip.id}
           onClose={() => setShowInviteModal(false)}
+        />
+      )}
+
+      {showExpenseModal && (
+        <AddExpenseModal
+          tripId={trip.id}
+          onClose={() => setShowExpenseModal(false)}
+          onExpenseAdded={handleExpenseAdded}
         />
       )}
 

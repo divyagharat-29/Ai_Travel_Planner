@@ -20,6 +20,7 @@ model User {
   tripMembers         TripMember[]
   sentInvitations     Invitation[] @relation("InvitationSender")
   receivedInvitations Invitation[] @relation("InvitationReceiver")
+  paidExpenses        Expense[]
 }
 
 model Trip {
@@ -37,6 +38,7 @@ model Trip {
   members     TripMember[]
   invitations Invitation[]
   itinerary   Itinerary?
+  expenses    Expense[]
 }
 
 model TripMember {
@@ -74,4 +76,17 @@ model Itinerary {
   updatedAt DateTime @updatedAt
 
   trip Trip @relation(fields: [tripId], references: [id])
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  tripId      Int
+  paidById    Int
+  title       String
+  amount      Float
+  splitType   String   @default("equal")
+  createdAt   DateTime @default(now())
+
+  trip    Trip @relation(fields: [tripId], references: [id])
+  paidBy  User @relation(fields: [paidById], references: [id])
 }
