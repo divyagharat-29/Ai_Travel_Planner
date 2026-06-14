@@ -5,6 +5,7 @@ import authRoutes from './routes/authRoutes.js'
 import tripRoutes from './routes/tripRoutes.js'
 import invitationRoutes from './routes/invitationRoutes.js'
 import aiRoutes from './routes/aiRoutes.js'
+import weatherRoutes from './routes/weatherRoutes.js'
 
 dotenv.config()
 
@@ -17,6 +18,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/trips', tripRoutes)
 app.use('/api/invitations', invitationRoutes)
 app.use('/api/ai', aiRoutes)
+app.use('/api/weather', weatherRoutes)
 
 app.get('/', (req, res) => {
   res.json({ message: 'Wandr API is running!' })
