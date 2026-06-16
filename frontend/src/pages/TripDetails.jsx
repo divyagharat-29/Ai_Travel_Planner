@@ -3,10 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getTripById } from '../services/tripService'
 import { generateItinerary, getItinerary } from '../services/aiService'
 import { getExpenses, getSplitSummary } from '../services/expenseService'
+import { getWeather } from '../services/weatherService'
 import InviteModal from '../components/InviteModal'
 import ItineraryView from '../components/ItineraryView'
 import AddExpenseModal from '../components/AddExpenseModal'
 import ExpensesView from '../components/ExpensesView'
+import WeatherWidget from '../components/WeatherWidget'
+import TripMap from '../components/TripMap'
 import '../styles/pages/TripDetails.css'
 
 function TripDetails() {
@@ -20,12 +23,19 @@ function TripDetails() {
   const [generatingAI, setGeneratingAI] = useState(false)
   const [expenses, setExpenses] = useState([])
   const [splitSummary, setSplitSummary] = useState(null)
+  const [weather, setWeather] = useState(null)
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
         const data = await getTripById(id)
         setTrip(data.trip)
+
+        // Fetch weather using destination
+        try {
+          const weatherData = await getWeather(data.trip.destination)
+          setWeather(weatherData)
+        } catch { }
 
         try {
           const itinData = await getItinerary(id)
@@ -62,7 +72,6 @@ function TripDetails() {
 
   const handleExpenseAdded = async (newExpense) => {
     setExpenses(prev => [newExpense, ...prev])
-    // Refresh split summary
     const splitData = await getSplitSummary(id)
     setSplitSummary(splitData)
   }
@@ -113,6 +122,24 @@ function TripDetails() {
             </div>
           </div>
         </div>
+
+        {/* Map */}
+        <div className="section-block">
+          <div className="section-block-title">
+            <span>📍 Destination Map</span>
+          </div>
+          <TripMap destination={trip.destination} />
+        </div>
+
+        {/* Weather */}
+        {weather && (
+          <div className="section-block">
+            <div className="section-block-title">
+              <span>Weather Forecast</span>
+            </div>
+            <WeatherWidget weather={weather} />
+          </div>
+        )}
 
         {/* Members */}
         <div className="section-block">

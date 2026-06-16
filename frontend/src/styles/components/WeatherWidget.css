@@ -1,0 +1,54 @@
+.weather-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.weather-location {
+  font-size: 13px;
+  color: #888;
+}
+
+.weather-forecast {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.weather-item {
+  background: #1a1a1a;
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+  border: 1px solid #2e2e2e;
+}
+
+.weather-date {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.weather-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.weather-temp {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.weather-desc {
+  font-size: 11px;
+  color: #aaa;
+  text-transform: capitalize;
+  margin-bottom: 6px;
+}
+
+.weather-meta {
+  font-size: 10px;
+  color: #666;
+}
