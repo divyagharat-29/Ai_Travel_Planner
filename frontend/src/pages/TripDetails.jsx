@@ -10,6 +10,7 @@ import AddExpenseModal from '../components/AddExpenseModal'
 import ExpensesView from '../components/ExpensesView'
 import WeatherWidget from '../components/WeatherWidget'
 import TripMap from '../components/TripMap'
+import { useSocket } from '../context/SocketContext'
 import '../styles/pages/TripDetails.css'
 
 function TripDetails() {
@@ -24,6 +25,7 @@ function TripDetails() {
   const [expenses, setExpenses] = useState([])
   const [splitSummary, setSplitSummary] = useState(null)
   const [weather, setWeather] = useState(null)
+  const socket = useSocket()
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -58,6 +60,33 @@ function TripDetails() {
     fetchAll()
   }, [id])
 
+  useEffect(() => {
+  if (!socket || !id) return
+
+  // Join this trip's room
+  socket.emit('join_trip', id)
+
+  // Listen for new expenses
+  socket.on('expense_added', (newExpense) => {
+    setExpenses(prev => [newExpense, ...prev])
+    getSplitSummary(id).then(data => setSplitSummary(data))
+  })
+
+  // Listen for new members
+  socket.on('member_joined', (data) => {
+    setTrip(prev => ({
+      ...prev,
+      members: [...prev.members, data.member]
+    }))
+  })
+
+  return () => {
+    socket.emit('leave_trip', id)
+    socket.off('expense_added')
+    socket.off('member_joined')
+  }
+  }, [socket, id])
+
   const handleGenerateItinerary = async () => {
     setGeneratingAI(true)
     try {
@@ -71,7 +100,7 @@ function TripDetails() {
   }
 
   const handleExpenseAdded = async (newExpense) => {
-    setExpenses(prev => [newExpense, ...prev])
+    // setExpenses(prev => [newExpense, ...prev])
     const splitData = await getSplitSummary(id)
     setSplitSummary(splitData)
   }

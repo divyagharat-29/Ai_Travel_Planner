@@ -1,13 +1,13 @@
 import prisma from '../config/prismaClient.js'
 
 // ADD EXPENSE
+// ADD EXPENSE
 export const addExpense = async (req, res) => {
   try {
     const tripId = parseInt(req.params.id)
     const paidById = req.user.userId
     const { title, amount } = req.body
 
-    // Verify user is a member of this trip
     const member = await prisma.tripMember.findUnique({
       where: {
         tripId_userId: { tripId, userId: paidById }
@@ -36,6 +36,9 @@ export const addExpense = async (req, res) => {
         }
       }
     })
+
+    // Emit real-time event to all users in this trip room
+    req.io.to(`trip_${tripId}`).emit('expense_added', expense)
 
     res.status(201).json({
       message: 'Expense added successfully',
@@ -207,3 +210,4 @@ export const getSplitSummary = async (req, res) => {
     res.status(500).json({ message: 'Something went wrong' })
   }
 }
+
